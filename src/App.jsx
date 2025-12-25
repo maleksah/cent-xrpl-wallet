@@ -4,6 +4,7 @@ import WalletDisplay from './components/WalletDisplay'
 import { Client } from 'xrpl'
 import { XRPL_NODE } from './constants'
 import { fetchBalances } from './utils/xrpl'
+import centLogo from './assets/cent_logo_white.png'
 
 function App() {
   // Wallet object: { address, seed, balance, usdcBalance... }
@@ -52,12 +53,15 @@ function App() {
   }, [])
 
   return (
-    <div className="container anim-fade-in">
-      <h1 className="title">
-        XRPL <span className="text-gradient">Wallet</span>
-      </h1>
+    <div className="container anim-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <img src={centLogo} alt="Cent Logo" style={{ height: '90px', width: 'auto' }} />
+        <h1 className="title" style={{ margin: 0 }}>
+          XRPL <span className="text-gradient">Wallet</span>
+        </h1>
+      </div>
 
-      <div className="glass" style={{ padding: '2rem' }}>
+      <div className="glass" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
         <WalletDisplay
           wallet={wallet}
           loadingBalance={loadingBalance}
@@ -75,7 +79,7 @@ function App() {
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
         Connected to XRPL Testnet
       </p>
-    </div>
+    </div >
   )
 }
 
