@@ -4,12 +4,13 @@ import { USDC_TESTNET, XRPL_NODE } from '../constants'
 import { fetchBalances } from '../utils/xrpl'
 import SendTokenForm from './SendTokenForm'
 
-export default function WalletManager({ wallet, setWallet, setLoadingBalance, refreshBalance }) {
+export default function WalletManager({ wallet, addWallet, setLoadingBalance, refreshBalance, hasWallets }) {
     const [creating, setCreating] = useState(false)
     const [funding, setFunding] = useState(false)
     const [error, setError] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
     const [showSend, setShowSend] = useState(false)
+    const [showAddForm, setShowAddForm] = useState(false)
 
     // Import state
     const [importing, setImporting] = useState(false)
@@ -21,7 +22,7 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
             setError('')
             const newWallet = Wallet.generate()
             // Initialize with 0 balance
-            setWallet({
+            addWallet({
                 address: newWallet.address,
                 seed: newWallet.seed,
                 balance: '0',
@@ -29,6 +30,8 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                 publicKey: newWallet.publicKey,
                 privateKey: newWallet.privateKey
             })
+            setShowAddForm(false)
+            setSeedInput('')
         } catch (err) {
             console.error(err)
             setError('Failed to generate wallet locally.')
@@ -89,11 +92,9 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
             // Fetch all balances after funding and trust line
             const balances = await fetchBalances(client, currentWallet.address)
 
-            setWallet(prev => ({
-                ...prev,
-                balance: balances.xrp,
-                usdcBalance: balances.usdc
-            }))
+            // We don't need to manually update balance here as refreshBalance will be triggered 
+            // by the parent if we update the wallets array or we can just call refreshBalance
+            await refreshBalance()
 
             await client.disconnect()
             setStatusMessage('')
@@ -136,7 +137,7 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
 
             await client.disconnect()
 
-            setWallet({
+            addWallet({
                 address: importedWallet.address,
                 seed: importedWallet.seed,
                 balance: balances.xrp,
@@ -144,6 +145,8 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                 publicKey: importedWallet.publicKey,
                 privateKey: importedWallet.privateKey
             })
+            setShowAddForm(false)
+            setSeedInput('')
 
         } catch (err) {
             console.error(err)
@@ -158,23 +161,38 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
         <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {error && <div style={{ color: '#ef4444', marginBottom: '0.5rem' }}>{error}</div>}
 
-            {!wallet ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* Create Section */}
-                    <div>
-                        <button
-                            onClick={createLocalWallet}
-                            disabled={creating || importing}
-                            className="btn btn-primary"
-                            style={{ width: '100%' }}
-                        >
-                            {creating ? 'Generating keys...' : 'Create New Wallet'}
-                        </button>
+            {!showAddForm && hasWallets && (
+                <button
+                    onClick={() => setShowAddForm(true)}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', marginBottom: '1rem' }}
+                >
+                    + Add or Import Another Wallet
+                </button>
+            )}
+
+            {(showAddForm || !hasWallets) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Wallet</h3>
+                        {hasWallets && (
+                            <button onClick={() => setShowAddForm(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✕</button>
+                        )}
                     </div>
+
+                    {/* Create Section */}
+                    <button
+                        onClick={createLocalWallet}
+                        disabled={creating || importing}
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                    >
+                        {creating ? 'Generating keys...' : 'Create New Wallet'}
+                    </button>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--text-muted)' }}>
                         <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
-                        <span style={{ fontSize: '0.875rem' }}>OR</span>
+                        <span style={{ fontSize: '0.75rem' }}>OR IMPORT</span>
                         <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
                     </div>
 
@@ -182,7 +200,7 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <input
                             type="text"
-                            placeholder="Enter Seed / Private Key"
+                            placeholder="Seed / Private Key"
                             value={seedInput}
                             onChange={(e) => setSeedInput(e.target.value)}
                             disabled={creating || importing}
@@ -194,41 +212,39 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                                 background: 'rgba(0,0,0,0.2)',
                                 border: '1px solid var(--glass-border)',
                                 outline: 'none',
-                                minWidth: 0
+                                minWidth: 0,
+                                fontSize: '0.875rem'
                             }}
                         />
                         <button
                             onClick={importWallet}
                             disabled={creating || importing || !seedInput}
                             className="btn btn-secondary"
+                            style={{ padding: '0.5rem 1rem' }}
                         >
                             {importing ? '...' : 'Import'}
                         </button>
                     </div>
                 </div>
-            ) : (
-                <div className="anim-slide-up">
-                    <p style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>
-                        {Number(wallet.balance) > 0
-                            ? 'Wallet connected successfully.'
-                            : 'Wallet generated/imported. Fund it to activate on Ledger.'}
-                    </p>
+            )}
 
-                    {/* Only show fund button if balance is zero-ish or user wants to add more */}
+            {wallet && !showAddForm && (
+                <div className="anim-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Fund Button */}
                     <button
                         onClick={fundWallet}
                         disabled={funding}
                         className="btn btn-primary"
                         style={{ width: '100%' }}
                     >
-                        {funding ? (statusMessage || 'Processing...') : 'Fund Wallet & Set USDC Trust Line'}
+                        {funding ? (statusMessage || 'Processing...') : 'Fund Active Wallet'}
                     </button>
 
                     {statusMessage && !error && (
                         <p style={{
                             fontSize: '0.875rem',
                             color: 'var(--primary)',
-                            marginTop: '0.5rem',
+                            marginTop: '-0.5rem',
                             textAlign: 'center',
                             opacity: 0.8
                         }}>
@@ -236,11 +252,11 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                         </p>
                     )}
 
-                    {/* Send USDC Toggle Button - Added here per user request */}
+                    {/* Send USDC Toggle */}
                     <button
                         onClick={() => setShowSend(!showSend)}
                         className="btn btn-secondary"
-                        style={{ width: '100%', padding: '0.75rem', marginTop: '1rem' }}
+                        style={{ width: '100%', padding: '0.75rem' }}
                     >
                         {showSend ? 'Cancel Transfer' : 'Send USDC'}
                     </button>
@@ -253,14 +269,6 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance, re
                             />
                         </div>
                     )}
-
-                    <button
-                        onClick={() => { setWallet(null); setSeedInput(''); }}
-                        className="btn btn-secondary"
-                        style={{ width: '100%', marginTop: '1rem' }}
-                    >
-                        Disconnect Wallet
-                    </button>
                 </div>
             )}
         </div>
