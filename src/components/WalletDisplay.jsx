@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export default function WalletDisplay({ wallet, loadingBalance }) {
+export default function WalletDisplay({ wallet, loadingBalance, refreshBalance }) {
     const [copied, setCopied] = useState(false)
 
     if (!wallet) {

@@ -24,31 +24,30 @@ function App() {
     }
   }, [wallet])
 
-  // Refresh balance on mount
-  useEffect(() => {
-    const refreshData = async () => {
-      if (wallet && wallet.address) {
-        setLoadingBalance(true)
-        try {
-          const client = new Client(XRPL_NODE)
-          await client.connect()
-          const balances = await fetchBalances(client, wallet.address)
-          setWallet(prev => ({
-            ...prev,
-            balance: balances.xrp,
-            usdcBalance: balances.usdc
-          }))
-          await client.disconnect()
-        } catch (err) {
-          console.error('Failed to refresh balance on mount:', err)
-        } finally {
-          setLoadingBalance(false)
-        }
+  const refreshBalance = async () => {
+    if (wallet && wallet.address) {
+      setLoadingBalance(true)
+      try {
+        const client = new Client(XRPL_NODE)
+        await client.connect()
+        const balances = await fetchBalances(client, wallet.address)
+        setWallet(prev => ({
+          ...prev,
+          balance: balances.xrp,
+          usdcBalance: balances.usdc
+        }))
+        await client.disconnect()
+      } catch (err) {
+        console.error('Failed to refresh balance:', err)
+      } finally {
+        setLoadingBalance(false)
       }
     }
+  }
 
-    refreshData()
-    // We only want to run this once on mount
+  // Refresh balance on mount
+  useEffect(() => {
+    refreshBalance()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -62,12 +61,14 @@ function App() {
         <WalletDisplay
           wallet={wallet}
           loadingBalance={loadingBalance}
+          refreshBalance={refreshBalance}
         />
 
         <WalletManager
           wallet={wallet}
           setWallet={setWallet}
           setLoadingBalance={setLoadingBalance}
+          refreshBalance={refreshBalance}
         />
       </div>
 

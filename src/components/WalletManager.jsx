@@ -2,12 +2,14 @@ import React, { useState } from 'react'
 import { Client, Wallet } from 'xrpl'
 import { USDC_TESTNET, XRPL_NODE } from '../constants'
 import { fetchBalances } from '../utils/xrpl'
+import SendTokenForm from './SendTokenForm'
 
-export default function WalletManager({ wallet, setWallet, setLoadingBalance }) {
+export default function WalletManager({ wallet, setWallet, setLoadingBalance, refreshBalance }) {
     const [creating, setCreating] = useState(false)
     const [funding, setFunding] = useState(false)
     const [error, setError] = useState('')
     const [statusMessage, setStatusMessage] = useState('')
+    const [showSend, setShowSend] = useState(false)
 
     // Import state
     const [importing, setImporting] = useState(false)
@@ -232,6 +234,24 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
                         }}>
                             {statusMessage}
                         </p>
+                    )}
+
+                    {/* Send USDC Toggle Button - Added here per user request */}
+                    <button
+                        onClick={() => setShowSend(!showSend)}
+                        className="btn btn-secondary"
+                        style={{ width: '100%', padding: '0.75rem', marginTop: '1rem' }}
+                    >
+                        {showSend ? 'Cancel Transfer' : 'Send USDC'}
+                    </button>
+
+                    {showSend && (
+                        <div className="anim-slide-up">
+                            <SendTokenForm
+                                wallet={wallet}
+                                refreshBalance={refreshBalance}
+                            />
+                        </div>
                     )}
 
                     <button
