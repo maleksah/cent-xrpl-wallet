@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Client, Wallet } from 'xrpl'
+import { USDC_TESTNET, XRPL_NODE } from '../constants'
 
 export default function WalletManager({ wallet, setWallet, setLoadingBalance }) {
     const [creating, setCreating] = useState(false)
@@ -20,6 +21,7 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
                 address: newWallet.address,
                 seed: newWallet.seed,
                 balance: '0',
+                usdcBalance: '0',
                 publicKey: newWallet.publicKey,
                 privateKey: newWallet.privateKey
             })
@@ -31,6 +33,32 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
         }
     }
 
+    const fetchBalances = async (client, address) => {
+        try {
+            const xrpBalance = await client.getXrpBalance(address)
+
+            const response = await client.request({
+                command: 'account_lines',
+                account: address
+            })
+
+            const lines = response.result.lines
+            const usdcLine = lines.find(line =>
+                line.currency === USDC_TESTNET.currency &&
+                line.account === USDC_TESTNET.issuer
+            )
+
+            return {
+                xrp: xrpBalance,
+                usdc: usdcLine ? usdcLine.balance : '0'
+            }
+        } catch (err) {
+            console.error('Error fetching balances:', err)
+            // If account doesn't exist yet, return 0
+            return { xrp: '0', usdc: '0' }
+        }
+    }
+
     const fundWallet = async () => {
         if (!wallet) return
 
@@ -39,19 +67,22 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
             setLoadingBalance(true)
             setError('')
 
-            const client = new Client('wss://s.altnet.rippletest.net:51233')
+            const client = new Client(XRPL_NODE)
             await client.connect()
 
             // Create a wallet instance from current seed to ensure we have the object
             const currentWallet = Wallet.fromSeed(wallet.seed)
 
             // Use the faucet to fund the wallet
-            // fundWallet returns { balance, wallet }
-            const fundResult = await client.fundWallet(currentWallet)
+            await client.fundWallet(currentWallet)
+
+            // Fetch all balances after funding
+            const balances = await fetchBalances(client, currentWallet.address)
 
             setWallet(prev => ({
                 ...prev,
-                balance: fundResult.balance
+                balance: balances.xrp,
+                usdcBalance: balances.usdc
             }))
 
             await client.disconnect()
@@ -85,25 +116,19 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
                 throw new Error('Invalid seed or private key format.')
             }
 
-            // Fetch balance
-            const client = new Client('wss://s.altnet.rippletest.net:51233')
+            // Fetch balances
+            const client = new Client(XRPL_NODE)
             await client.connect()
 
-            let balance = '0'
-            try {
-                const balanceResponse = await client.getXrpBalance(importedWallet.address)
-                balance = balanceResponse
-            } catch (err) {
-                console.log('Account not found or no balance:', err)
-                // Ensure we handle unfunded accounts gracefully
-            }
+            const balances = await fetchBalances(client, importedWallet.address)
 
             await client.disconnect()
 
             setWallet({
                 address: importedWallet.address,
                 seed: importedWallet.seed,
-                balance: balance,
+                balance: balances.xrp,
+                usdcBalance: balances.usdc,
                 publicKey: importedWallet.publicKey,
                 privateKey: importedWallet.privateKey
             })

@@ -23,17 +23,34 @@ export default function WalletDisplay({ wallet, loadingBalance }) {
     return (
         <div className="anim-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-            {/* Balance Card */}
-            <div className="glass" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                    Current Balance
+            {/* Balances Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                {/* XRP Balance Card */}
+                <div className="glass" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1.25rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        XRP Balance
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                        {loadingBalance ? (
+                            <span className="anim-pulse" style={{ opacity: 0.5 }}>---</span>
+                        ) : (
+                            <span>{wallet.balance} <span style={{ fontSize: '0.875rem', color: 'var(--primary)', fontWeight: 'normal' }}>XRP</span></span>
+                        )}
+                    </div>
                 </div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-                    {loadingBalance ? (
-                        <span className="anim-pulse" style={{ opacity: 0.5 }}>---</span>
-                    ) : (
-                        <span>{wallet.balance} <span style={{ fontSize: '1rem', color: 'var(--primary)' }}>XRP</span></span>
-                    )}
+
+                {/* USDC Balance Card */}
+                <div className="glass" style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '1.25rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        USDC Balance
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                        {loadingBalance ? (
+                            <span className="anim-pulse" style={{ opacity: 0.5 }}>---</span>
+                        ) : (
+                            <span>{wallet.usdcBalance || '0'} <span style={{ fontSize: '0.875rem', color: '#22c55e', fontWeight: 'normal' }}>USDC</span></span>
+                        )}
+                    </div>
                 </div>
             </div>
 
