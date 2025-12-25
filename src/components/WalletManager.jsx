@@ -6,6 +6,7 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
     const [creating, setCreating] = useState(false)
     const [funding, setFunding] = useState(false)
     const [error, setError] = useState('')
+    const [statusMessage, setStatusMessage] = useState('')
 
     // Import state
     const [importing, setImporting] = useState(false)
@@ -66,17 +67,49 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
             setFunding(true)
             setLoadingBalance(true)
             setError('')
+            setStatusMessage('Connecting to XRPL Testnet...')
 
             const client = new Client(XRPL_NODE)
             await client.connect()
 
+            setStatusMessage('Requesting XRP from Faucet (approx 10s)...')
             // Create a wallet instance from current seed to ensure we have the object
             const currentWallet = Wallet.fromSeed(wallet.seed)
 
             // Use the faucet to fund the wallet
             await client.fundWallet(currentWallet)
 
-            // Fetch all balances after funding
+            setStatusMessage('Checking for USDC Trust Line...')
+            // Check if trust line exists
+            const response = await client.request({
+                command: 'account_lines',
+                account: currentWallet.address
+            })
+
+            const lines = response.result.lines
+            const hasTrustLine = lines.some(line =>
+                line.currency === USDC_TESTNET.currency &&
+                line.account === USDC_TESTNET.issuer
+            )
+
+            if (!hasTrustLine) {
+                setStatusMessage('Establishing USDC Trust Line...')
+                const trustSetTx = {
+                    TransactionType: "TrustSet",
+                    Account: currentWallet.address,
+                    LimitAmount: {
+                        currency: USDC_TESTNET.currency,
+                        issuer: USDC_TESTNET.issuer,
+                        value: "1000000000" // Large limit
+                    }
+                }
+                const prepared = await client.autofill(trustSetTx)
+                const signed = currentWallet.sign(prepared)
+                await client.submitAndWait(signed.tx_blob)
+                setStatusMessage('Trust line established!')
+            }
+
+            // Fetch all balances after funding and trust line
             const balances = await fetchBalances(client, currentWallet.address)
 
             setWallet(prev => ({
@@ -86,9 +119,11 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
             }))
 
             await client.disconnect()
+            setStatusMessage('')
         } catch (err) {
             console.error(err)
-            setError('Failed to fund wallet (Faucet might be busy).')
+            setError('Failed to fund wallet or create trust line.')
+            setStatusMessage('')
         } finally {
             setFunding(false)
             setLoadingBalance(false)
@@ -209,8 +244,20 @@ export default function WalletManager({ wallet, setWallet, setLoadingBalance }) 
                         className="btn btn-primary"
                         style={{ width: '100%' }}
                     >
-                        {funding ? 'Requesting Faucet (approx 10s)...' : 'Fund Wallet (1000 XRP)'}
+                        {funding ? (statusMessage || 'Processing...') : 'Fund Wallet & Set USDC Trust Line'}
                     </button>
+
+                    {statusMessage && !error && (
+                        <p style={{
+                            fontSize: '0.875rem',
+                            color: 'var(--primary)',
+                            marginTop: '0.5rem',
+                            textAlign: 'center',
+                            opacity: 0.8
+                        }}>
+                            {statusMessage}
+                        </p>
+                    )}
 
                     <button
                         onClick={() => { setWallet(null); setSeedInput(''); }}
