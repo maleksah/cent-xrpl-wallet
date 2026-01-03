@@ -5,3 +5,5 @@ export const USDC_TESTNET = {
 }
 
 export const XRPL_NODE = 'wss://s.altnet.rippletest.net:51233'
+
+export const EXPLORER_URL = 'https://testnet.xrpl.org/transactions/'

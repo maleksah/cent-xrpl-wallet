@@ -4,8 +4,9 @@ import WalletDisplay from './components/WalletDisplay'
 import WalletSelector from './components/WalletSelector'
 import { Client } from 'xrpl'
 import { XRPL_NODE } from './constants'
-import { fetchBalances } from './utils/xrpl'
+import { fetchBalances, fetchTransactions } from './utils/xrpl'
 import centLogo from './assets/cent_logo_white.png'
+import TransactionModal from './components/TransactionModal'
 
 function App() {
   // Mult-wallet state
@@ -32,6 +33,11 @@ function App() {
 
   // Balance loading state separate from wallet creation to handle independent funding
   const [loadingBalance, setLoadingBalance] = useState(false)
+
+  // Transaction History State
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false)
+  const [transactions, setTransactions] = useState([])
+  const [loadingTx, setLoadingTx] = useState(false)
 
   // Sync to localStorage
   useEffect(() => {
@@ -90,11 +96,38 @@ function App() {
     }
   }
 
+  const loadTransactions = async () => {
+    if (activeWallet && activeWallet.address) {
+      setIsTxModalOpen(true)
+      setLoadingTx(true)
+      try {
+        const client = new Client(XRPL_NODE)
+        await client.connect()
+        const txs = await fetchTransactions(client, activeWallet.address)
+        setTransactions(txs)
+        await client.disconnect()
+      } catch (err) {
+        console.error('Failed to load transactions:', err)
+      } finally {
+        setLoadingTx(false)
+      }
+    }
+  }
+
   // Refresh balance on wallet switch or mount
   useEffect(() => {
     refreshBalance()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAddress])
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isTxModalOpen) {
+      document.body.classList.add('modal-open')
+    } else {
+      document.body.classList.remove('modal-open')
+    }
+  }, [isTxModalOpen])
 
   return (
     <div className="container anim-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '2rem' }}>
@@ -118,6 +151,7 @@ function App() {
             wallet={activeWallet}
             loadingBalance={loadingBalance}
             refreshBalance={refreshBalance}
+            onViewHistory={loadTransactions}
           />
         ) : (
           <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
@@ -139,6 +173,14 @@ function App() {
       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
         Connected to XRPL Testnet
       </p>
+
+      <TransactionModal
+        isOpen={isTxModalOpen}
+        onClose={() => setIsTxModalOpen(false)}
+        transactions={transactions}
+        loading={loadingTx}
+        address={activeAddress}
+      />
     </div >
   )
 }
