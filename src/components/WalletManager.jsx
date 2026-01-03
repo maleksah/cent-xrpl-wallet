@@ -4,7 +4,7 @@ import { USDC_TESTNET, XRPL_NODE } from '../constants'
 import { fetchBalances } from '../utils/xrpl'
 import SendTokenForm from './SendTokenForm'
 
-export default function WalletManager({ wallet, addWallet, setLoadingBalance, refreshBalance, hasWallets }) {
+export default function WalletManager({ wallet, addWallet, setLoadingBalance, refreshBalance, hasWallets, onViewHistory }) {
     const [creating, setCreating] = useState(false)
     const [funding, setFunding] = useState(false)
     const [error, setError] = useState('')
@@ -259,6 +259,19 @@ export default function WalletManager({ wallet, addWallet, setLoadingBalance, re
                         style={{ width: '100%', padding: '0.75rem' }}
                     >
                         {showSend ? 'Cancel Transfer' : 'Send USDC'}
+                    </button>
+
+                    {/* View History Button */}
+                    <button
+                        onClick={onViewHistory}
+                        className="btn btn-secondary"
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem' }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        View Transaction History
                     </button>
 
                     {showSend && (

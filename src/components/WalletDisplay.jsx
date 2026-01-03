@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-export default function WalletDisplay({ wallet, loadingBalance, refreshBalance, onViewHistory }) {
+export default function WalletDisplay({ wallet, loadingBalance, refreshBalance }) {
     const [copied, setCopied] = useState(false)
 
     if (!wallet) {
@@ -71,19 +71,6 @@ export default function WalletDisplay({ wallet, loadingBalance, refreshBalance, 
                     {copied ? 'Copied!' : 'Copy'}
                 </button>
             </div>
-
-            {/* View History Button */}
-            <button
-                onClick={onViewHistory}
-                className="btn btn-secondary"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                View Transaction History
-            </button>
 
             {/* Private Key Card */}
             <PrivateKeyDisplay wallet={wallet} />

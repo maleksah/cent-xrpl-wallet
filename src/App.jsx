@@ -151,7 +151,6 @@ function App() {
             wallet={activeWallet}
             loadingBalance={loadingBalance}
             refreshBalance={refreshBalance}
-            onViewHistory={loadTransactions}
           />
         ) : (
           <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
@@ -167,6 +166,7 @@ function App() {
           setLoadingBalance={setLoadingBalance}
           refreshBalance={refreshBalance}
           hasWallets={wallets.length > 0}
+          onViewHistory={loadTransactions}
         />
       </div>
 
